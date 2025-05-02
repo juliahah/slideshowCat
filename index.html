@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cat Slideshow from Unsplash</title>
+  <style>
+    body {
+      background: #111;
+      overflow: hidden;
+      margin: 0;
+    }
+
+    #root {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .container img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      transition: opacity 8s ease-in-out;
+      z-index: 1;
+    }
+
+    .container img.active {
+      opacity: 1;
+      z-index: 2;
+    }
+
+    .blur-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(10px);
+      z-index: 3;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="container"></div>
+    <div class="blur-overlay"></div>
+  </div>
+
+  <script>
+    const container = document.querySelector(".container");
+
+    let photoArray = [];
+    let pageIndex = 0;
+    let interval = null;
+
+    const accessKey = "zE9SiiMyCl5TxAqvpUIphoUSd72HIHrQFBmwUAm4hAg";
+    const query = "cats";
+    const perPage = 30;
+
+    const getPhotos = () => {
+      fetch(`https://api.unsplash.com/search/photos?query=${query}&per_page=${perPage}&client_id=${accessKey}`)
+        .then(response => response.json())
+        .then(data => {
+          const horizontalPhotos = data.results.filter(photo => photo.width > photo.height);
+
+          horizontalPhotos.forEach(photo => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = photo.urls.regular;
+            img.classList.add("slideshow-image");
+            photoArray.push(img);
+          });
+
+          if (photoArray.length > 0) {
+            container.appendChild(photoArray[0]);
+            photoArray[0].classList.add("active");
+            pageIndex = 1;
+            startSlideshow();
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching from Unsplash:", err);
+        });
+    };
+
+    const startSlideshow = () => {
+      interval = setInterval(() => {
+        const oldImg = container.querySelector(".slideshow-image.active");
+        const nextImg = photoArray[pageIndex].cloneNode();
+
+        container.appendChild(nextImg);
+
+        // Force reflow before adding active class
+        void nextImg.offsetWidth;
+
+        nextImg.classList.add("active");
+
+        // Remove old image after transition is done
+        setTimeout(() => {
+          if (oldImg) {
+            container.removeChild(oldImg);
+          }
+        }, 8000); // Match transition time
+
+        pageIndex = (pageIndex + 1) % photoArray.length;
+      }, 12000); // Change every 12 seconds
+    };
+
+    getPhotos();
+  </script>
+</body>
+</html>
